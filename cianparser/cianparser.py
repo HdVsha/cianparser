@@ -1,8 +1,8 @@
 from cianparser.rentsparser import ParserRentOffers
 from cianparser.constants import *
 
-offer_types = {"rent_long", "rent_short", "sale"}
-offer_not_implemented_yet = {"rent_short", "sale"}
+deal_types = {"rent_long", "sale"}
+deal_not_implemented_yet = {"rent_short"}
 
 accommodation_types = {"flat", "room", "house", "house-part", "townhouse"}
 accommodation_not_implemented_yet = {"room", "house", "house-part", "townhouse"}
@@ -12,22 +12,23 @@ def list_cities():
     return CITIES
 
 
-def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=100):
+def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=100, deal_type="sale"):
     """
     Parse information from cian website
     Examples:
-        >>> data = cianparser.parse(offer="rent_long", accommodation="flat", location="Казань", rooms=1, start_page=1, end_page=1)
-        >>> data = cianparser.parse(offer="rent_short", accommodation="flat", location="Москва", rooms=(1,3,"studio"))
-        >>> data = cianparser.parse(offer="sale", accommodation="house", location="Санкт-Петербург", rooms="all")
+        >>> data = cianparser.parse(offer="rent_long", accommodation="flat", location="Казань", rooms=1, start_page=1, end_page=1, deal_type="sale")
+        >>> data = cianparser.parse(offer="rent_short", accommodation="flat", location="Москва", rooms=(1,3,"studio"), deal_type="rent_long")
+        >>> data = cianparser.parse(offer="sale", accommodation="house", location="Санкт-Петербург", rooms="all", deal_type="sale")
     :param str offer: type of offer, e.g. "rent_long", "rent_short", "sale"
     :param str accommodation: type of accommodation, e.g. "flat", "room", "house", "house-part", "townhouse"
     :param str location: location. e.g. "Казань", for see all correct values use cianparser.list_cities()
     :param rooms: how many rooms in accommodation, default "all". Example 1, (1,3, "studio"), "studio, "all"
     :param start_page: the page from which the parser starts, default 1
     :param end_page: the page from which the parser ends, default 100
+    :param deal_type: the type of deal: rent or sell
     """
 
-    if offer not in offer_types:
+    if offer not in deal_types:
         raise ValueError(f'You entered offer={offer}, which is not valid value. '
                          f'Try entering one of these values: "rent_long", "rent_short", "sale".')
 
@@ -61,21 +62,21 @@ def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=10
         raise TypeError(f'In argument "rooms" not valid type of element. '
                         f'It is correct int, str and tuple types. Example 1, (1,3, "studio"), "studio, "all".')
 
-    finded = False
+    found = False
     for city in CITIES:
         if city[0] == location:
-            finded = True
+            found = True
             location_id = city[1]
 
-    if not finded:
-        raise ValueError(f'You entered {location}, which is not exists in base.'
-                         f' See all correct values of location in cianparser.list_cities()')
+    if not found:
+        raise ValueError(f'You entered {location}, which does not exist in base.CONSTANTS.'
+                         f' See all correct values of locations in cianparser.list_cities()')
 
-    if offer in offer_not_implemented_yet or accommodation in accommodation_not_implemented_yet:
-        print("Sorry. This functionality has not yet been implemented, but it is planned...")
+    if offer in deal_not_implemented_yet or accommodation in accommodation_not_implemented_yet:
+        print("Sorry. This functionality has not been implemented yet, but it is planned...")
         return []
     else:
-        parser = ParserRentOffers(type_offer=offer, type_accommodation=accommodation, location_id=location_id, rooms=rooms, start_page=start_page, end_page=end_page)
+        parser = ParserRentOffers(type_accommodation=accommodation, location_id=location_id, rooms=rooms, start_page=start_page, end_page=end_page, deal_type=deal_type)
         parser.run()
         print('\n')
 

@@ -6,7 +6,7 @@ from cianparser.constants import *
 
 
 class ParserRentOffers:
-    def __init__(self, type_offer: str, type_accommodation: str, location_id: str, rooms, start_page: int, end_page: int):
+    def __init__(self,  type_accommodation: str, location_id: str, rooms, start_page: int, end_page: int, deal_type: str):
         self.session = requests.Session()
         self.session.headers = {'Accept-Language': 'ru', "Accept": "text/html"}
 
@@ -16,11 +16,8 @@ class ParserRentOffers:
         self.rooms = rooms
         self.start_page = start_page
         self.end_page = end_page
-
-        if type_offer == "rent_long":
-            self.type_offer = 4
-        elif type_offer == "rent_short":
-            self.type_offer = 2
+        self.deal_type = deal_type
+        self.duration_type = 4  # Means flat
 
         self.url = None
 
@@ -42,9 +39,9 @@ class ParserRentOffers:
                 rooms_path += STUDIO
             elif self.rooms == "all":
                 rooms_path = ""
-
-        return BASE_LINK + ACCOMMODATION_TYPE_PARAMETER.format(self.type_accommodation) + \
-            DURATION_TYPE_PARAMETER.format(self.type_offer) + rooms_path
+        base_link = BASE_LINK.replace("DEAL_TYPE", self.deal_type)
+        return base_link + ACCOMMODATION_TYPE_PARAMETER.format(self.type_accommodation) + \
+            DURATION_TYPE_PARAMETER.format(self.duration_type) + rooms_path
 
     def load_page(self, number_page=1):
         self.url = self.build_url().format(number_page, self.location_id)
