@@ -1,8 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import transliterate
-import re
-import pymorphy2
 from re import findall
 from cianparser.constants import *
 
@@ -60,15 +58,10 @@ class ParserRentOffers:
     def parse_page(self, html: str, number_page: int):
         try:
             soup = BeautifulSoup(html, 'lxml')
-            with open('soup.txt', 'w') as file:
-                file.write(soup.prettify())
         except:
             soup = BeautifulSoup(html, 'html.parser')
 
         offers = soup.select("div[data-name='HeaderDefault']")
-        title = offers[0].text
-
-        morph = pymorphy2.MorphAnalyzer()
 
         offers = soup.select('div[class="_93444fe79c--wrapper--W0WqH"] > article[data-name="CardComponent"]')
         if number_page == self.start_page:
