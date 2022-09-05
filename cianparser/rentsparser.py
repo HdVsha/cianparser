@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-import transliterate
 from re import findall
 from cianparser.constants import *
+import time
+import csv
 
 
 class ParserRentOffers:
@@ -46,13 +47,18 @@ class ParserRentOffers:
 
     def load_page(self, number_page=1):
         self.url = self.build_url().format(number_page, self.location_id)
-
+        # get the start time
+        st = time.time()
         res = self.session.get(url=self.url)
 
         res.raise_for_status()
+        # get the end time
+        et = time.time()
+        print(f'Load page number {number_page} execution time:', et-st, 'seconds')
         return res.text
 
     def parse_page(self, html: str, number_page: int):
+        st = time.time()
         try:
             soup = BeautifulSoup(html, 'lxml')
         except:
@@ -63,11 +69,15 @@ class ParserRentOffers:
             print(f"Setting {len(offers)} offers [", end="")
             print("=>" * len(offers), end="")
             print("] 100%")
-
+        et = time.time()
+        print(f'Offer from page {number_page} parse execution time:', st-et, 'seconds')
         print(f"{number_page} page: ", end="")
         print("[ ", end="")
         for block in offers:
+            et = time.time()
             self.parse_block(block=block)
+            st = time.time()
+            print(f'Block from page {number_page} parse execution time:', st-et, 'seconds')
         print("] 100%")
 
     def parse_page_offer(self, html_offer):
@@ -166,31 +176,8 @@ class ParserRentOffers:
             print("LOG: Docs couldn't be checked")
 
         link = block.select("div[data-name='LinkArea']")[0].select("a")[0].get('href')
-
+        print(link)
         subtitle = ''
-        try:
-            meters = int(title[title.find("м²") - 4: title.find("м²")])
-
-        except:
-            try:
-                print("LOG: Meters couldn't be retrieved 1")
-                meters = int(title[title.find("м²") - 5: title.find("м²")].split(',')[0])
-
-            except:
-                print("LOG: Meters couldn't be retrieved 2")
-                subtitle = \
-                    block.select('div[data-name="LinkArea"]')[0].select("div[class='_93444fe79c--subtitle--vHiOV']")[
-                        0].text
-
-                m = findall(r"[-+]?(?:\d*,\d+|\d+)", subtitle)[1]
-                meters = ''
-                if "," in m:
-                    m = m.replace(",", ".")
-                if "." in m:
-                    meters = float(m)
-                else:
-                    meters = int(m)
-                print("Meters: " + str(meters))
 
         if "1-комн" in title or "Студия" in title or "1-комн" in subtitle or "Студия" in subtitle:
             how_many_rooms = 1
@@ -205,8 +192,6 @@ class ParserRentOffers:
 
         address_long = block.select("div[data-name='LinkArea']")[0].select("div[class='_93444fe79c--labels--L8WyJ']")[
             0].text
-        print("Long address")
-        print(address_long)
 
         price_long = block.select("div[data-name='LinkArea']")[0].select("span[data-mark='MainPrice']")[0].text
         price_per_month = "".join(price_long[:price_long.find("₽/мес") - 1].split())
@@ -216,20 +201,23 @@ class ParserRentOffers:
             commissions = int(price_long[price_long.find("%") - 2:price_long.find("%")].replace(" ", ""))
         else:
             commissions = 0
-
-        try:
-            author = transliterate.translit(author, reversed=True)
-        except:
-            pass
+        et = time.time()
         self.session = requests.Session()
         self.session.headers = {'Accept-Language': 'ru', "Accept": "text/html"}
         res = self.session.get(url=link)
         res.raise_for_status()
         html_offer_page = res.text
+        st = time.time()
+        print(f'Offer"s page from parent page parse execution time:', st-et, 'seconds')
 
+        et = time.time()
         year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
             html_offer=html_offer_page)
         print("=>", end="")
+        st = time.time()
+        print(f'Parse page offer child execution time:', st-et, 'seconds')
+
+
         result = {
             "accommodation": self.type_accommodation,
             "how_many_rooms": how_many_rooms,
@@ -239,7 +227,7 @@ class ParserRentOffers:
             "address": address_long,
             "floor": exact_floor,
             "overall_floors": overall_floors,
-            "square_meters": meters,
+            # "square_meters": meters,
             "commissions": commissions,
             "author": author,
             "author_type": author_type,
@@ -249,6 +237,7 @@ class ParserRentOffers:
             "kitchen_meters": kitchen_meters,
             "link": link
         }
+
         self.result.append(result)
 
     def get_results(self):
@@ -256,13 +245,23 @@ class ParserRentOffers:
 
     def run(self):
         print(f"\n{' ' * 15}Start collecting information from pages..")
-
         for number_page in range(self.start_page, self.end_page + 1):
             try:
                 html = self.load_page(number_page=number_page)
                 self.parse_page(html=html, number_page=number_page)
+                self.write_to_csv()
+                self.result = []
             except Exception as e:
                 print(e)
-                print(e.with_traceback())
                 print(f"This page number {number_page} doesn't exist... Ending parse\n")
                 break
+
+    def write_to_csv(self):
+        results = self.get_results()
+        et = time.time()
+        with open("results.csv", "a", newline='') as csvfile:
+            fieldnames = [key for key in results[0].keys()]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writerows(results)
+        st = time.time()
+        print(f'Writing results to file execution time:', st - et, 'seconds')
