@@ -6,7 +6,8 @@ from cianparser.constants import *
 
 
 class ParserRentOffers:
-    def __init__(self,  type_accommodation: str, location_id: str, rooms, start_page: int, end_page: int, deal_type: str):
+    def __init__(self, type_accommodation: str, location_id: str, rooms, start_page: int, end_page: int,
+                 deal_type: str):
         self.session = requests.Session()
         self.session.headers = {'Accept-Language': 'ru', "Accept": "text/html"}
 
@@ -41,13 +42,12 @@ class ParserRentOffers:
                 rooms_path = ""
         base_link = BASE_LINK.replace("DEAL_TYPE", self.deal_type)
         return base_link + ACCOMMODATION_TYPE_PARAMETER.format(self.type_accommodation) + \
-            DURATION_TYPE_PARAMETER.format(self.duration_type) + rooms_path
+               DURATION_TYPE_PARAMETER.format(self.duration_type) + rooms_path
 
     def load_page(self, number_page=1):
         self.url = self.build_url().format(number_page, self.location_id)
 
         res = self.session.get(url=self.url)
-
 
         res.raise_for_status()
         return res.text
@@ -58,12 +58,10 @@ class ParserRentOffers:
         except:
             soup = BeautifulSoup(html, 'html.parser')
 
-        offers = soup.select("div[data-name='HeaderDefault']")
-
         offers = soup.select('div[class="_93444fe79c--wrapper--W0WqH"] > article[data-name="CardComponent"]')
         if number_page == self.start_page:
             print(f"Setting {len(offers)} offers [", end="")
-            print("=>"*len(offers), end="")
+            print("=>" * len(offers), end="")
             print("] 100%")
 
         print(f"{number_page} page: ", end="")
@@ -76,18 +74,20 @@ class ParserRentOffers:
         soup_offer_page = BeautifulSoup(html_offer, 'lxml')
         try:
             text_offer = soup_offer_page.select("div[data-name='BtiContainer'] > div[data-name='BtiHouseData']")[0].text
-            year = int(text_offer[text_offer.find("Год постройки")+13: text_offer.find("Год постройки") + 17])
+            year = int(text_offer[text_offer.find("Год постройки") + 13: text_offer.find("Год постройки") + 17])
         except:
             print("LOG: Year couldn't be retrieved")
             year = -1
-            year_soup = soup_offer_page.select("div[data-testid='object-summary-description-info'] > div[data-testid='object-summary-description-value']")
+            year_soup = soup_offer_page.select(
+                "div[data-testid='object-summary-description-info'] > div[data-testid='object-summary-description-value']")
             for var in year_soup:
                 f = findall(r"\b\d\d\d\d\b", var.text)
                 if len(f) == 1:
                     year = f[0]
 
         try:
-            text_offer = soup_offer_page.select("div[data-name='ObjectSummaryDescription'] > div > div:nth-child(1)")[0].text
+            text_offer = soup_offer_page.select("div[data-name='ObjectSummaryDescription'] > div > div:nth-child(1)")[
+                0].text
             comm = (text_offer[: text_offer.find("Общая")])
             comm_meters = int(findall(r'\d+', comm)[0])
         except IndexError:
@@ -100,7 +100,8 @@ class ParserRentOffers:
         overall_floors = -1
         exact_floor = -1
         try:
-            text_offer = soup_offer_page.select("div[data-testid='object-summary-description-info'] > div[data-testid='object-summary-description-value']")
+            text_offer = soup_offer_page.select(
+                "div[data-testid='object-summary-description-info'] > div[data-testid='object-summary-description-value']")
 
             for value in text_offer:
                 f = findall(r'\d+', value.text)
@@ -112,14 +113,17 @@ class ParserRentOffers:
 
         kitchen_meters = -1
         try:
-            text_offer = soup_offer_page.select("div[data-testid='object-summary-description-info-block'] > div[data-testid='object-summary-description-info']")
+            text_offer = soup_offer_page.select(
+                "div[data-testid='object-summary-description-info-block'] > div["
+                "data-testid='object-summary-description-info']")
             for info in text_offer:
                 if info.select("div[data-testid='object-summary-description-title']")[0].text == "Кухня":
-                    kitchen_meters = int(findall(r"\d+", info.select("div[data-testid='object-summary-description-value']")[0].text)[0])
+                    kitchen_meters = int(
+                        findall(r"\d+", info.select("div[data-testid='object-summary-description-value']")[0].text)[0])
         except IndexError:
             text_offer = soup_offer_page.select("div[data-name='ObjectSummaryDescription'] > div")[0].text
             if "Кухня" in text_offer:
-                kitchen = (text_offer[text_offer.find("Кухня")-6: text_offer.find("Кухня")])
+                kitchen = (text_offer[text_offer.find("Кухня") - 6: text_offer.find("Кухня")])
                 kitchen_meters = int(findall(r'\d+', kitchen)[0])
             else:
                 kitchen_meters = -1
@@ -137,19 +141,23 @@ class ParserRentOffers:
             author = block.select("div[class='_93444fe79c--main-info--Nib9U']")[0].select("a")[0].get("href")
             author += " " + block.select("div[class='_93444fe79c--main-info--Nib9U']")[0].select("a")[0].text
 
-            author_type = block.select("div[class='_93444fe79c--container--GyJAp'] > span[style='letter-spacing:1px']")[0].text
+            author_type = block.select("div[class='_93444fe79c--container--GyJAp'] > span[style='letter-spacing:1px']")[
+                0].text
 
         except:
             try:
                 print("LOG: Author couldn't be retrieved 1")
                 author = block.select('div[class="_93444fe79c--main-info--Nib9U"]')[0].select(
                     "div[class='_93444fe79c--name-container--enElO']")[0].text
-                author_type = block.select("div[class='_93444fe79c--container--GyJAp'] > span[style='letter-spacing:1px']")[0].text
+                author_type = \
+                    block.select("div[class='_93444fe79c--container--GyJAp'] > span[style='letter-spacing:1px']")[
+                        0].text
 
             except:
                 print("LOG: Author couldn't be retrieved 2")
                 author = block.select("div[data-name='Agent']")[0].select("span[data-name='AgentTitle']")[0].text
-                author_type = block.select("div[class='_93444fe79c--container--GyJAp' > span[style='letter-spacing:1px']")[0].text
+                author_type = \
+                    block.select("div[class='_93444fe79c--container--GyJAp' > span[style='letter-spacing:1px']")[0].text
 
         try:
             docs_checked = block.select(
@@ -170,7 +178,9 @@ class ParserRentOffers:
 
             except:
                 print("LOG: Meters couldn't be retrieved 2")
-                subtitle = block.select('div[data-name="LinkArea"]')[0].select("div[class='_93444fe79c--subtitle--vHiOV']")[0].text
+                subtitle = \
+                    block.select('div[data-name="LinkArea"]')[0].select("div[class='_93444fe79c--subtitle--vHiOV']")[
+                        0].text
 
                 m = findall(r"[-+]?(?:\d*,\d+|\d+)", subtitle)[1]
                 meters = ''
@@ -181,7 +191,6 @@ class ParserRentOffers:
                 else:
                     meters = int(m)
                 print("Meters: " + str(meters))
-
 
         if "1-комн" in title or "Студия" in title or "1-комн" in subtitle or "Студия" in subtitle:
             how_many_rooms = 1
@@ -194,7 +203,8 @@ class ParserRentOffers:
         else:
             how_many_rooms = -1
 
-        address_long = block.select("div[data-name='LinkArea']")[0].select("div[class='_93444fe79c--labels--L8WyJ']")[0].text
+        address_long = block.select("div[data-name='LinkArea']")[0].select("div[class='_93444fe79c--labels--L8WyJ']")[
+            0].text
         print("Long address")
         print(address_long)
 
@@ -207,7 +217,6 @@ class ParserRentOffers:
         else:
             commissions = 0
 
-
         try:
             author = transliterate.translit(author, reversed=True)
         except:
@@ -218,7 +227,8 @@ class ParserRentOffers:
         res.raise_for_status()
         html_offer_page = res.text
 
-        year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(html_offer=html_offer_page)
+        year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
+            html_offer=html_offer_page)
         print("=>", end="")
         result = {
             "accommodation": self.type_accommodation,
@@ -241,14 +251,13 @@ class ParserRentOffers:
         }
         self.result.append(result)
 
-
     def get_results(self):
         return self.result
 
     def run(self):
-        print(f"\n{' '*15}Start collecting information from pages..")
+        print(f"\n{' ' * 15}Start collecting information from pages..")
 
-        for number_page in range(self.start_page, self.end_page+1):
+        for number_page in range(self.start_page, self.end_page + 1):
             try:
                 html = self.load_page(number_page=number_page)
                 self.parse_page(html=html, number_page=number_page)
