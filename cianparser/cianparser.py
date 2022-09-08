@@ -12,7 +12,7 @@ def list_cities():
     return CITIES
 
 
-def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=100, deal_type="sale"):
+async def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=100, deal_type="sale"):
     """
     Parse information from cian website
     Examples:
@@ -77,7 +77,7 @@ def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=10
         return []
     else:
         parser = ParserRentOffers(type_accommodation=accommodation, location_id=location_id, rooms=rooms, start_page=start_page, end_page=end_page, deal_type=deal_type)
-        parser.run()
+        await parser.run()
         print('\n')
 
         return parser.get_results()

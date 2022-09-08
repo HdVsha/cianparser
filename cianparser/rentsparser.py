@@ -4,13 +4,14 @@ from re import findall
 from cianparser.constants import *
 import time
 import csv
+import aiohttp
+import asyncio
 
 
 class ParserRentOffers:
     def __init__(self, type_accommodation: str, location_id: str, rooms, start_page: int, end_page: int,
                  deal_type: str):
-        self.session = requests.Session()
-        self.session.headers = {'Accept-Language': 'ru', "Accept": "text/html"}
+        self.session = aiohttp.ClientSession
 
         self.result = []
         self.type_accommodation = type_accommodation
@@ -45,20 +46,25 @@ class ParserRentOffers:
         return base_link + ACCOMMODATION_TYPE_PARAMETER.format(self.type_accommodation) + \
                DURATION_TYPE_PARAMETER.format(self.duration_type) + rooms_path
 
-    def load_page(self, number_page=1):
+    async def fetch(self, session, url):
+        async with session.get(url) as response:
+            return await response.text()  # connection from coroutine text() has to be released here as below it will
+            # raise en error
+
+    async def load_page(self, number_page=1):
         self.url = self.build_url().format(number_page, self.location_id)
         # get the start time
         st = time.time()
-        res = self.session.get(url=self.url)
+        async with self.session(headers={'Accept-Language': 'ru', "Accept": "text/html"}) as session:
+            res = await self.fetch(session, self.url)   # getting html of the page
 
-        res.raise_for_status()
-        # get the end time
+            # get the end time
+            et = time.time()
+            print(f'Load page number {number_page} execution time:', et - st, 'seconds')
+            await self.parse_page(html=res, number_page=number_page)
+
+    async def parse_page(self, html: str, number_page: int):
         et = time.time()
-        print(f'Load page number {number_page} execution time:', et-st, 'seconds')
-        return res.text
-
-    def parse_page(self, html: str, number_page: int):
-        st = time.time()
         try:
             soup = BeautifulSoup(html, 'lxml')
         except:
@@ -69,15 +75,15 @@ class ParserRentOffers:
             print(f"Setting {len(offers)} offers [", end="")
             print("=>" * len(offers), end="")
             print("] 100%")
-        et = time.time()
-        print(f'Offer from page {number_page} parse execution time:', st-et, 'seconds')
+        st = time.time()
+        print(f'Offer from page {number_page} parse execution time:', st - et, 'seconds')
         print(f"{number_page} page: ", end="")
         print("[ ", end="")
         for block in offers:
             et = time.time()
-            self.parse_block(block=block)
+            await self.parse_block(block=block)
             st = time.time()
-            print(f'Block from page {number_page} parse execution time:', st-et, 'seconds')
+            print(f'Block from page {number_page} parse execution time:', st - et, 'seconds')
         print("] 100%")
 
     def parse_page_offer(self, html_offer):
@@ -142,7 +148,7 @@ class ParserRentOffers:
 
         return (year, comm_meters, kitchen_meters, exact_floor, overall_floors)
 
-    def parse_block(self, block):
+    async def parse_block(self, block):
 
         title = block.select('div[data-name="LinkArea"]')[0].select("span[data-mark='OfferTitle']")[0].text
         docs_checked = False
@@ -202,59 +208,55 @@ class ParserRentOffers:
         else:
             commissions = 0
         et = time.time()
-        self.session = requests.Session()
-        self.session.headers = {'Accept-Language': 'ru', "Accept": "text/html"}
-        res = self.session.get(url=link)
-        res.raise_for_status()
-        html_offer_page = res.text
-        st = time.time()
-        print(f'Offer"s page from parent page parse execution time:', st-et, 'seconds')
+        session = aiohttp.ClientSession(headers={'Accept-Language': 'ru', "Accept": "text/html"})
+        async with session as session:
+            res = await self.fetch(session, link)
+            html_offer_page = res
+            st = time.time()
+            print(f'Offer"s page from parent page parse execution time:', st - et, 'seconds')
 
-        et = time.time()
-        year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
-            html_offer=html_offer_page)
-        print("=>", end="")
-        st = time.time()
-        print(f'Parse page offer child execution time:', st-et, 'seconds')
+            et = time.time()
+            year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
+                html_offer=html_offer_page)
+            print("=>", end="")
+            st = time.time()
+            print(f'Parse page offer child execution time:', st - et, 'seconds')
 
+            result = {
+                "accommodation": self.type_accommodation,
+                "how_many_rooms": how_many_rooms,
+                "price_per_month": price_per_month,
+                # "street": street,
+                # "district": district,
+                "address": address_long,
+                "floor": exact_floor,
+                "overall_floors": overall_floors,
+                # "square_meters": meters,
+                "commissions": commissions,
+                "author": author,
+                "author_type": author_type,
+                "docs_checked": docs_checked,
+                "year_of_construction": year_of_construction,
+                "comm_meters": comm_meters,
+                "kitchen_meters": kitchen_meters,
+                "link": link
+            }
 
-        result = {
-            "accommodation": self.type_accommodation,
-            "how_many_rooms": how_many_rooms,
-            "price_per_month": price_per_month,
-            # "street": street,
-            # "district": district,
-            "address": address_long,
-            "floor": exact_floor,
-            "overall_floors": overall_floors,
-            # "square_meters": meters,
-            "commissions": commissions,
-            "author": author,
-            "author_type": author_type,
-            "docs_checked": docs_checked,
-            "year_of_construction": year_of_construction,
-            "comm_meters": comm_meters,
-            "kitchen_meters": kitchen_meters,
-            "link": link
-        }
-
-        self.result.append(result)
+            self.result.append(result)
 
     def get_results(self):
         return self.result
 
-    def run(self):
+    async def run(self):
         print(f"\n{' ' * 15}Start collecting information from pages..")
-        for number_page in range(self.start_page, self.end_page + 1):
-            try:
-                html = self.load_page(number_page=number_page)
-                self.parse_page(html=html, number_page=number_page)
-                self.write_to_csv()
-                self.result = []
-            except Exception as e:
-                print(e)
-                print(f"This page number {number_page} doesn't exist... Ending parse\n")
-                break
+
+        et = time.time()
+        tasks = [asyncio.ensure_future(self.load_page(number_page)) for number_page in
+                 range(self.start_page, self.end_page + 1)]
+        await asyncio.gather(*tasks)
+        st = time.time()
+        self.write_to_csv()
+        print(f'PAGES PARSE OVERALL EXECUTION TIME:', st - et, 'SECONDS')
 
     def write_to_csv(self):
         results = self.get_results()
