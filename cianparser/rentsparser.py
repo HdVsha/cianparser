@@ -208,40 +208,39 @@ class ParserRentOffers:
         else:
             commissions = 0
         et = time.time()
-        async with session as session:
-            res = await self.fetch(session, link)
-            html_offer_page = res
-            st = time.time()
-            print(f'Offer"s page from parent page parse execution time:', st - et, 'seconds')
+        res = await self.fetch(session, link)
+        html_offer_page = res
+        st = time.time()
+        print(f'Offer"s page from parent page parse execution time:', st - et, 'seconds')
 
-            et = time.time()
-            year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
-                html_offer=html_offer_page)
-            print("=>", end="")
-            st = time.time()
-            print(f'Parse page offer child execution time:', st - et, 'seconds')
+        et = time.time()
+        year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
+            html_offer=html_offer_page)
+        print("=>", end="")
+        st = time.time()
+        print(f'Parse page offer child execution time:', st - et, 'seconds')
 
-            result = {
-                "accommodation": self.type_accommodation,
-                "how_many_rooms": how_many_rooms,
-                "price_per_month": price_per_month,
-                # "street": street,
-                # "district": district,
-                "address": address_long,
-                "floor": exact_floor,
-                "overall_floors": overall_floors,
-                # "square_meters": meters,
-                "commissions": commissions,
-                "author": author,
-                "author_type": author_type,
-                "docs_checked": docs_checked,
-                "year_of_construction": year_of_construction,
-                "comm_meters": comm_meters,
-                "kitchen_meters": kitchen_meters,
-                "link": link
-            }
+        result = {
+            "accommodation": self.type_accommodation,
+            "how_many_rooms": how_many_rooms,
+            "price_per_month": price_per_month,
+            # "street": street,
+            # "district": district,
+            "address": address_long,
+            "floor": exact_floor,
+            "overall_floors": overall_floors,
+            # "square_meters": meters,
+            "commissions": commissions,
+            "author": author,
+            "author_type": author_type,
+            "docs_checked": docs_checked,
+            "year_of_construction": year_of_construction,
+            "comm_meters": comm_meters,
+            "kitchen_meters": kitchen_meters,
+            "link": link
+        }
 
-            self.result.append(result)
+        self.result.append(result)
 
     def get_results(self):
         return self.result
@@ -252,7 +251,10 @@ class ParserRentOffers:
         et = time.time()
         tasks = [asyncio.ensure_future(self.load_page(number_page)) for number_page in
                  range(self.start_page, self.end_page + 1)]
-        await asyncio.gather(*tasks)
+        semaphore = asyncio.Semaphore(100)
+
+        async with semaphore:
+            await asyncio.gather(*tasks)
         st = time.time()
         self.write_to_csv()
         print(f'PAGES PARSE OVERALL EXECUTION TIME:', st - et, 'SECONDS')
