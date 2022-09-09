@@ -1,4 +1,4 @@
-import requests
+
 from bs4 import BeautifulSoup
 from re import findall
 from cianparser.constants import *
@@ -20,7 +20,7 @@ class ParserRentOffers:
         self.start_page = start_page
         self.end_page = end_page
         self.deal_type = deal_type
-        self.duration_type = 4  # Means flat
+        self.duration_type = 4
 
         self.url = None
 
