@@ -61,9 +61,9 @@ class ParserRentOffers:
             # get the end time
             et = time.time()
             print(f'Load page number {number_page} execution time:', et - st, 'seconds')
-            await self.parse_page(html=res, number_page=number_page)
+            await self.parse_page(html=res, number_page=number_page, session=session)
 
-    async def parse_page(self, html: str, number_page: int):
+    async def parse_page(self, html: str, number_page: int, session):
         et = time.time()
         try:
             soup = BeautifulSoup(html, 'lxml')
@@ -81,7 +81,7 @@ class ParserRentOffers:
         print("[ ", end="")
         for block in offers:
             et = time.time()
-            await self.parse_block(block=block)
+            await self.parse_block(block=block, session=session)
             st = time.time()
             print(f'Block from page {number_page} parse execution time:', st - et, 'seconds')
         print("] 100%")
@@ -148,7 +148,7 @@ class ParserRentOffers:
 
         return (year, comm_meters, kitchen_meters, exact_floor, overall_floors)
 
-    async def parse_block(self, block):
+    async def parse_block(self, block, session):
 
         title = block.select('div[data-name="LinkArea"]')[0].select("span[data-mark='OfferTitle']")[0].text
         docs_checked = False
@@ -208,7 +208,6 @@ class ParserRentOffers:
         else:
             commissions = 0
         et = time.time()
-        session = aiohttp.ClientSession(headers={'Accept-Language': 'ru', "Accept": "text/html"})
         async with session as session:
             res = await self.fetch(session, link)
             html_offer_page = res
