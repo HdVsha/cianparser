@@ -12,7 +12,7 @@ def list_cities():
     return CITIES
 
 
-async def parse(offer, accommodation, location, rooms="all", start_page=1, end_page=100, deal_type="sale"):
+async def parse(accommodation, location, rooms="all", start_page=1, end_page=100, deal_type="sale"):
     """
     Parse information from cian website
     Examples:
@@ -28,8 +28,8 @@ async def parse(offer, accommodation, location, rooms="all", start_page=1, end_p
     :param deal_type: the type of deal: rent or sell
     """
 
-    if offer not in deal_types:
-        raise ValueError(f'You entered offer={offer}, which is not valid value. '
+    if deal_type not in deal_types:
+        raise ValueError(f'You entered offer={deal_type}, which is not valid value. '
                          f'Try entering one of these values: "rent_long", "rent_short", "sale".')
 
     if accommodation not in accommodation_types:
@@ -72,7 +72,7 @@ async def parse(offer, accommodation, location, rooms="all", start_page=1, end_p
         raise ValueError(f'You entered {location}, which does not exist in base.CONSTANTS.'
                          f' See all correct values of locations in cianparser.list_cities()')
 
-    if offer in deal_not_implemented_yet or accommodation in accommodation_not_implemented_yet:
+    if deal_type in deal_not_implemented_yet or accommodation in accommodation_not_implemented_yet:
         print("Sorry. This functionality has not been implemented yet, but it is planned...")
         return []
     else:
