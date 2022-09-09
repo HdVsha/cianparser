@@ -253,7 +253,7 @@ class ParserRentOffers:
                  range(self.start_page, self.end_page + 1)]
         semaphore = asyncio.Semaphore(100)
 
-        async with semaphore:
+        async with semaphore:  # otherwise server will disable us when more than 100 tcp connections from 1 ip
             await asyncio.gather(*tasks)
         st = time.time()
         self.write_to_csv()
