@@ -11,5 +11,5 @@ setup(
     packages=['cianparser'],
     classifiers=[],
     keywords='python parser requests beautifulsoup cian',
-    install_requires=['requests', 'beautifulsoup4', 'transliterate', 'pymorphy2', 'lxml', "asyncio", aiohttp],
+    install_requires=['requests', 'beautifulsoup4', 'transliterate', 'pymorphy2', 'lxml', "asyncio", "aiohttp", "csv", "re"],
 )
