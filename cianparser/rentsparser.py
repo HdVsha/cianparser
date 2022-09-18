@@ -146,7 +146,12 @@ class ParserRentOffers:
         except:
             kitchen_meters = -1
 
-        return (year, comm_meters, kitchen_meters, exact_floor, overall_floors)
+        try:
+            description = soup_offer_page.select("div[data-name='Description'] > div")[0].text
+        except:
+            description = -1
+
+        return (year, comm_meters, kitchen_meters, exact_floor, overall_floors, description)
 
     async def parse_block(self, block, session):
 
@@ -214,7 +219,7 @@ class ParserRentOffers:
         print(f'Offer"s page from parent page parse execution time:', st - et, 'seconds')
 
         et = time.time()
-        year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors = self.parse_page_offer(
+        year_of_construction, comm_meters, kitchen_meters, exact_floor, overall_floors, description = self.parse_page_offer(
             html_offer=html_offer_page)
         print("=>", end="")
         st = time.time()
@@ -237,7 +242,8 @@ class ParserRentOffers:
             "year_of_construction": year_of_construction,
             "comm_meters": comm_meters,
             "kitchen_meters": kitchen_meters,
-            "link": link
+            "link": link,
+            "description": description
         }
 
         self.result.append(result)
@@ -262,7 +268,7 @@ class ParserRentOffers:
     def write_to_csv(self):
         results = self.get_results()
         et = time.time()
-        with open("results.csv", "a", newline='') as csvfile:
+        with open("results_with_descr.csv", "a", newline='') as csvfile:
             fieldnames = [key for key in results[0].keys()]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerows(results)
